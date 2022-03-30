@@ -1,26 +1,44 @@
 #include <Arduino.h>
-//#include <FS.h>  //this needs to be first, or it all crashes and burns..
-#include "wifi_manager_functions.h"
-//#include <SPIFFS.h>
-//#include <ArduinoJson.h>
+#include "lcd_functions.h"
+#include "wifi_manager.h"
 
 
+//#include <TFT_eSPI.h> // Graphics and font library for ILI9341 driver chip
+//#include <SPI.h>
+//TFT_eSPI tft = TFT_eSPI();  // Invoke library, pins defined in User_Setup.h
+//#define TFT_GREY 0x5AEB // New colour
 
 
+/*
+void ttgoConnection(){
+    tft.fillScreen(TFT_BLACK);  tft.setCursor(0, 0, 2);// X,Y, Font
+    tft.setTextColor(TFT_WHITE,TFT_BLACK);  tft.setTextSize(2);
+    tft.println("WiFi connected"); 
+    //tft.print("SSID: "); 
+    tft.println(WiFi.SSID()); 
+    //tft.print(" ("); tft.print(WiFi.RSSI()); tft.println(")");
+    //tft.print("Channel :"); tft.println(WiFi.channel());
+    tft.print("IP: "); tft.print(WiFi.localIP());
+}
+*/
+void setup()
+{
+  Serial.begin(115200);
+  Serial.print("Starting LCD init");
+  //spiffInit();
+  //spiffListFiles();
 
-void setup() {
-    Serial.begin(115200);
-    
-    setup_wifi_manager();
-   
-    
+  lcdInit();
+  //lcdSplashScreen();
+
+  
+  
+  wifiManagerSetup(); // WiFi Manager, SPIFF uploader, OTA Updates
+
+  
 }
 
-void loop() {
-    //wm.process();
-    //if(wm_nonblocking) wm.process(); // avoid delays() in loop when non-blocking and other long running code  
-    wifi_manager_check_for_reset();
-    
+void loop()
+{
+  wifiManagerLoop();
 }
-
-
