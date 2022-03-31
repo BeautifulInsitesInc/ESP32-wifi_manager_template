@@ -25,6 +25,6 @@ void loop()
 {
   wifiManagerLoop();
   #ifdef LCD_DISPLAY
-    lcdLoop();
+    lcdBrightness();
   #endif
 }

@@ -12,8 +12,10 @@
 #define LCD_BL_PIN 4 // LED backlight pin to turn on or off
 #define LCD_BUTTON 0
 
-int screen_time_out = 15; //time for screen backlight to turn off in seconds.
-unsigned long start_time_screen = 0; // to record mill at start of timer for screen shut off
+
+int time_screentime = 15; //time for screen backlight to turn off in seconds.
+unsigned long timer_start_screentime = 0; // to record mill at start of timer for screen shut off
+int brightness_level = 50;
 
 #define LCD_DISPLAY // Used to include LCD libraries - comment out to turn off
 
@@ -112,6 +114,13 @@ void lcdClearText(){
 }
 
 
+
+void lcdSetBrightness(uint32_t newBrightness){
+  ledcWrite(0, newBrightness); // 0-15, 0-255 (with 8 bit resolution);  0=totally dark;255=totally shiny
+}
+
+
+
 void lcdInit(){
   tft.init();
   spiffInit();
@@ -137,31 +146,45 @@ void lcdInit(){
   //delay(1000);
   //tft.println("It's Alive!");
   
-  start_time_screen = millis();
+  timer_start_screentime = millis();
   //pinMode(LCD_BL_PIN, INPUT_PULLUP);
+
+  //Turn on LCD and controll intensity
+  pinMode(TFT_BL, OUTPUT);
+  ledcSetup(0, 5000, 8); // 0-15, 5000, 8
+  ledcAttachPin(TFT_BL, 0); // TFT_BL, 0 - 15
+  //ledcWrite(0, 1); // 0-15, 0-255 (with 8 bit resolution); 0=totally dark;255=totally shiny
+
+  lcdSetBrightness(brightness_level);
+
+
 }
 
+void lcdBrightness(){
 
-void lcdLoop(){
-
-    if(millis() >= start_time_screen + (screen_time_out*1000)) {
-      digitalWrite(LCD_BL_PIN, 0);
-      out("Screen timer is up --- turning off");
+    if(millis() >= timer_start_screentime + (time_screentime*1000)) {
+      lcdSetBrightness(100);
+      delay(500);
+      lcdSetBrightness(0);
+      brightness_level = 0;
+      timer_start_screentime = millis();
     }
 
     if (digitalRead(LCD_BUTTON) == 0){
+      out("Screen Button pressed onced Screen brightness is "); outln(brightness_level);
       delay(1000);
       if (digitalRead(LCD_BUTTON) == 0){
-        if(digitalRead(LCD_BL_PIN == LOW)){
-          digitalWrite(LCD_BL_PIN, HIGH);
-          out("Button pressed, turning screen on");
-          start_time_screen = millis();
+        outln("Screen Button held");
+        if(brightness_level == 0) brightness_level = 100;
+        else if (brightness_level == 100) brightness_level = 255;
+        else brightness_level = 0;
       }
+    
+
     }
-    else {
-        digitalWrite(LCD_BL_PIN, LOW);
-        out("Button pressed, turning screen off");
-    } 
+lcdSetBrightness(brightness_level);
+out("Screen bright ness  set to : "); outln(brightness_level);
+    
 }
 
 #endif

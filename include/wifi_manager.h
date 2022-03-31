@@ -86,7 +86,7 @@ DoubleResetDetector* drd = NULL;//DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRE
 //////
 
 // SSID and PW for Config Portal
-String ssid = "ESP_" + String((uint32_t)ESP.getEfuseMac(), HEX);
+String ssid = "TTGO-1_" + String((uint32_t)ESP.getEfuseMac(), HEX);
 
 
 // SSID and PW for your Router
@@ -372,7 +372,7 @@ uint8_t connectMultiWiFi()
 
     #ifdef LCD_DISPLAY
       lcdClearText();
-      lcdoutln(" GW MODE");
+      lcdoutln(" STA MODE");
       tft.setTextSize(1); lcdoutln();
       tft.setTextSize(2); lcdout("   "); lcdoutln(WiFi.localIP());
       tft.setTextSize(1);
@@ -922,7 +922,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
      
     #ifdef LCD_DISPLAY
       lcdClearText();
-      lcdoutln(" GW MODE");
+      lcdoutln(" STA MODE");
       tft.setTextSize(1); lcdoutln();
       tft.setTextSize(2); lcdoutln("   CONNECTING..."); 
       tft.setTextSize(1);
