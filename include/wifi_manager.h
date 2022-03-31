@@ -25,7 +25,10 @@ String password = "password";
 
 #if USE_LITTLEFS
   // Use LittleFS
-  #include "FS.h"
+  #ifndef LCD_DISPLAY
+    #include "FS.h"
+  #endif
+  
   #include <LittleFS.h>  
 
   FS* filesystem =      &LittleFS;
@@ -33,7 +36,9 @@ String password = "password";
   #define FS_Name       "LittleFS"
     
 #elif USE_SPIFFS
-  #include <SPIFFS.h>
+  #ifndef LCD_DISPLAY // Already delcared in lcd_functions.h
+    #include <SPIFFS.h>
+  #endif
   FS* filesystem =                &SPIFFS;
   #define FileFS                  SPIFFS
   #define FS_Name                 "SPIFFS"
@@ -73,7 +78,7 @@ String password = "password";
 
 #include <ESP_DoubleResetDetector.h>      //https://github.com/khoih-prog/ESP_DoubleResetDetector
 
-#define DRD_TIMEOUT 10// Number of seconds after reset during which a
+#define DRD_TIMEOUT 20// Number of seconds after reset during which a
 #define DRD_ADDRESS 0// RTC Memory Address for the DoubleResetDetector to use
 
 DoubleResetDetector* drd = NULL;//DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
@@ -363,6 +368,27 @@ uint8_t connectMultiWiFi()
     LOGERROR1(F("WiFi connected after time: "), i);
     LOGERROR3(F("SSID:"), WiFi.SSID(), F(",RSSI="), WiFi.RSSI());
     LOGERROR3(F("Channel:"), WiFi.channel(), F(",IP address:"), WiFi.localIP() );
+
+
+    #ifdef LCD_DISPLAY
+      lcdClearText();
+      lcdoutln(" GW MODE");
+      tft.setTextSize(1); lcdoutln();
+      tft.setTextSize(2); lcdout("   "); lcdoutln(WiFi.localIP());
+      tft.setTextSize(1);
+      lcdout(" /edit"); lcdout(" - "); lcdout(http_username); lcdout("/"); lcdout(http_password);
+      lcdout("  /update - OTA");  
+      lcdout("  ");lcdout(Router_SSID); lcdout(" / "); lcdoutln(Router_Pass);
+
+    #endif
+
+
+
+
+
+
+
+    
   }
   else
   {
@@ -750,6 +776,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     // Enter CP only if no stored SSID on flash and file 
     Serial.println(F("Open Config Portal without Timeout: No stored Credentials."));
     initialConfig = true;
+    
   }
 
   if (drd->detectDoubleReset())
@@ -764,7 +791,27 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
   if (initialConfig)
   {
     Serial.print(F("Starting configuration portal @ "));
+
+
+
+    #ifdef LCD_DISPLAY
+      lcdClearText();
     
+      lcdoutln(" AP MODE");
+      tft.setTextSize(1); lcdoutln();
+      tft.setTextSize(2); lcdoutln("   192.168.4.1");
+      tft.setTextSize(1); 
+      lcdout("  "); lcdout(ssid); lcdout(" / "); lcdoutln(password);
+      //digitalWrite(LCD_LIGHT_PIN, 0);
+      
+      
+
+    #endif
+
+
+
+
+
 #if USE_CUSTOM_AP_IP    
     Serial.print(APStaticIP);
 #else
@@ -773,8 +820,10 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
     Serial.print(F(", SSID = "));
     Serial.print(ssid);
+    
     Serial.print(F(", PWD = "));
     Serial.println(password);
+    
 
     // Starts an access point
     if (!ESPAsync_wifiManager.startConfigPortal((const char *) ssid.c_str(), password.c_str()))
@@ -871,6 +920,20 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     {
       Serial.println(F("ConnectMultiWiFi in setup"));
      
+    #ifdef LCD_DISPLAY
+      lcdClearText();
+      lcdoutln(" GW MODE");
+      tft.setTextSize(1); lcdoutln();
+      tft.setTextSize(2); lcdoutln("   CONNECTING..."); 
+      tft.setTextSize(1);
+      lcdout("  ");lcdout(Router_SSID); lcdout(" / "); lcdoutln(Router_Pass);
+
+    #endif
+
+
+
+
+
       connectMultiWiFi();
     }
   }
@@ -1017,7 +1080,14 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
   Serial.println("Using username = " + http_username + " and password = " + http_password);
   Serial.println(separatorLine);
 
-  digitalWrite(LED_BUILTIN, LED_OFF);
+  
+
+
+
+
+
+
+  digitalWrite(LED_BUILTIN, LOW);
 
 
 

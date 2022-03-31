@@ -8,9 +8,28 @@
 #include <FS.h> // for ili9488  // The SPIFFS (FLASH filing system) is used to hold touch screencalibration data
 #define FS_NO_GLOBALS
 
+#define TTGO_240x135 // use for the TTGO ESP32 board
+#define LCD_BL_PIN 4 // LED backlight pin to turn on or off
+#define LCD_BUTTON 0
+
+int screen_time_out = 15; //time for screen backlight to turn off in seconds.
+unsigned long start_time_screen = 0; // to record mill at start of timer for screen shut off
+
+#define LCD_DISPLAY // Used to include LCD libraries - comment out to turn off
+
+#ifdef LCD_DISPLAY
+  #define lcdout(x) tft.print(x)
+  #define lcdoutln(x) tft.println(x)
+#else
+  #define lcdout(x)
+  #define lcdoutln(x)
+#endif
+
+
 TFT_eSPI tft = TFT_eSPI();       // Invoke custom library
 #define TFT_GREY 0x5AEB // New colour
-bool showsplash; // used in loop to show only on initilization
+
+
 
 // ============ DISPLAYING JPEGS ======================
 bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap){// render each block to the TFT.
@@ -61,9 +80,9 @@ void loadFile(const char *name){
 void lcdSplashScreen(){
   
   loadFile("/si_ttgo240x135d.jpg");
-  delay(2000);
+  delay(500);
   loadFile("/si_ttgo240x135.jpg");
-  delay(2000);
+  delay(1000);
   /*
     tft.fillScreen(TFT_RED);
     uint32_t t = millis();  // Time recorded for test purposes
@@ -76,6 +95,22 @@ void lcdSplashScreen(){
     delay(5000);// Wait before drawing again
   */
 }
+
+
+
+void lcdClearText(){
+  tft.setRotation(1);
+  tft.setCursor(0, 10, 2);// X,Y, Font
+  tft.setTextColor(TFT_BLACK,TFT_WHITE);  tft.setTextSize(2);
+  tft.println("       ");
+  tft.setTextSize(1);
+  tft.println();
+  tft.println("             ");
+  tft.println("             ");
+  tft.println("             ");
+  tft.setCursor(0, 10, 2); tft.setTextSize(2);
+}
+
 
 void lcdInit(){
   tft.init();
@@ -96,25 +131,37 @@ void lcdInit(){
   loadFile("/sidelogo.jpg");
   delay(2000);
 
-  tft.setRotation(1);
-  tft.setCursor(0, 0, 2);// X,Y, Font
-  tft.setTextColor(TFT_BLACK,TFT_WHITE);  tft.setTextSize(2);
-  tft.println("Starting...");
-  delay(1000);
-  tft.println("It's Alive!");
+  lcdClearText();
   
-
-
+  //tft.println("Starting...");
+  //delay(1000);
+  //tft.println("It's Alive!");
+  
+  start_time_screen = millis();
+  //pinMode(LCD_BL_PIN, INPUT_PULLUP);
 }
 
-void lcdTest(){
-    tft.fillScreen(TFT_WHITE);
-    tft.setCursor(0, 0, 2);
-    // Set the font colour to be white with a black background, set text size multiplier to 1
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);  tft.setTextSize(5);
-    // We can now plot text on screen using the "print" class
-    tft.println("Hi Lexi!");
-    tft.println("Your feet stink!");
+
+void lcdLoop(){
+
+    if(millis() >= start_time_screen + (screen_time_out*1000)) {
+      digitalWrite(LCD_BL_PIN, 0);
+      out("Screen timer is up --- turning off");
+    }
+
+    if (digitalRead(LCD_BUTTON) == 0){
+      delay(1000);
+      if (digitalRead(LCD_BUTTON) == 0){
+        if(digitalRead(LCD_BL_PIN == LOW)){
+          digitalWrite(LCD_BL_PIN, HIGH);
+          out("Button pressed, turning screen on");
+          start_time_screen = millis();
+      }
+    }
+    else {
+        digitalWrite(LCD_BL_PIN, LOW);
+        out("Button pressed, turning screen off");
+    } 
 }
 
 #endif
