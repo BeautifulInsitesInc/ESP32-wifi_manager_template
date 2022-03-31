@@ -13,7 +13,7 @@
 #define LCD_BUTTON 0
 
 
-int time_screentime = 15; //time for screen backlight to turn off in seconds.
+int time_screentime = 60; //time for screen backlight to turn off in seconds.
 unsigned long timer_start_screentime = 0; // to record mill at start of timer for screen shut off
 int brightness_level = 50;
 
@@ -162,9 +162,9 @@ void lcdInit(){
 
 void lcdBrightness(){
 
-    if(millis() >= timer_start_screentime + (time_screentime*1000)) {
+    if((millis() >= timer_start_screentime + (time_screentime*1000)) && brightness_level !=0) {
       lcdSetBrightness(100);
-      delay(500);
+      delay(100);
       lcdSetBrightness(0);
       brightness_level = 0;
       timer_start_screentime = millis();
@@ -172,7 +172,7 @@ void lcdBrightness(){
 
     if (digitalRead(LCD_BUTTON) == 0){
       out("Screen Button pressed onced Screen brightness is "); outln(brightness_level);
-      delay(1000);
+      delay(100);
       if (digitalRead(LCD_BUTTON) == 0){
         outln("Screen Button held");
         if(brightness_level == 0) brightness_level = 100;
