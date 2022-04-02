@@ -3,6 +3,8 @@
 
 #include <Arduino.h> // must be here, but does not need to be entered in .cpp file
 #include <AsyncElegantOTA.h>
+// WEB SERIAL
+
 
 #define ESP_ASYNC_WIFIMANAGER_VERSION_MIN_TARGET      "ESPAsync_WiFiManager v1.12.2"
 #define ESP_ASYNC_WIFIMANAGER_VERSION_MIN             1012002
@@ -270,6 +272,34 @@ typedef struct
 WiFi_AP_IPConfig  WM_AP_IPconfig;
 WiFi_STA_IPConfig WM_STA_IPconfig;
 
+
+
+// WEB SERIAL
+/* Message callback of WebSerial */
+void recvMsg(uint8_t *data, size_t len){
+  WebSerial.println("Received Data...");
+  String d = "";
+  for(int i=0; i < len; i++){
+    d += char(data[i]);
+  }
+  WebSerial.println(d);
+}
+
+// END WEB SERIAL
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void initSTAIPConfigStruct(WiFi_STA_IPConfig &in_WM_STA_IPconfig)
 {
   in_WM_STA_IPconfig._sta_static_ip   = stationIP;
@@ -372,12 +402,13 @@ uint8_t connectMultiWiFi()
 
     #ifdef LCD_DISPLAY
       lcdClearText();
-      lcdoutln(" STA MODE");
+      lcdoutln("STA MODE");
       tft.setTextSize(1); lcdoutln();
       tft.setTextSize(2); lcdout("   "); lcdoutln(WiFi.localIP());
       tft.setTextSize(1);
-      lcdout(" /edit"); lcdout(" - "); lcdout(http_username); lcdout("/"); lcdout(http_password);
-      lcdout("  /update - OTA");  
+      lcdout(" /edit"); lcdout(" ("); lcdout(http_username); lcdout("/"); lcdout(http_password);lcdout(")");
+      lcdoutln("  /update");
+      lcdoutln("  /webserial");  
       lcdout("  ");lcdout(Router_SSID); lcdout(" / "); lcdoutln(Router_Pass);
 
     #endif
@@ -447,8 +478,8 @@ void printLocalTime(){
   // You can get from timeinfo : tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec
   if (timeinfo.tm_year > 100 )
   {
-    Serial.print("Local Date/Time: ");
-    Serial.print( asctime( &timeinfo ) );
+    out("Local Date/Time: ");
+    out( asctime( &timeinfo ) );
   }
 }
 #endif
@@ -463,18 +494,18 @@ void heartBeatPrint()
   static int num = 1;
 
   if (WiFi.status() == WL_CONNECTED)
-    Serial.print(F("H"));        // H means connected to WiFi
+    out(F("H"));        // H means connected to WiFi
   else
-    Serial.print(F("F"));        // F means not connected to WiFi
+    out(F("F"));        // F means not connected to WiFi
 
   if (num == 80)
   {
-    Serial.println();
+    outln();
     num = 1;
   }
   else if (num++ % 10 == 0)
   {
-    Serial.print(F(" "));
+    out(F(" "));
   }
 #endif  
 }
@@ -484,7 +515,7 @@ void check_WiFi()
 {
   if ( (WiFi.status() != WL_CONNECTED) )
   {
-    Serial.println(F("\nWiFi lost. Call connectMultiWiFi in loop"));
+    outln(F("\nWiFi lost. Call connectMultiWiFi in loop"));
     connectMultiWiFi();
   }
 }  
@@ -620,16 +651,16 @@ void saveConfigData()
 
 void wifiManagerSetup(){
 pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
-  Serial.print(F("\nStarting Async_ESP32_FSWebServer_DRD using ")); Serial.print(FS_Name);
-  Serial.print(F(" on ")); Serial.println(ARDUINO_BOARD);
-  Serial.println(ESP_ASYNC_WIFIMANAGER_VERSION);
-  Serial.println(ESP_DOUBLE_RESET_DETECTOR_VERSION);
+  out(F("\nStarting Async_ESP32_FSWebServer_DRD using ")); out(FS_Name);
+  out(F(" on ")); outln(ARDUINO_BOARD);
+  outln(ESP_ASYNC_WIFIMANAGER_VERSION);
+  outln(ESP_DOUBLE_RESET_DETECTOR_VERSION);
 
 #if defined(ESP_ASYNC_WIFIMANAGER_VERSION_INT)
   if (ESP_ASYNC_WIFIMANAGER_VERSION_INT < ESP_ASYNC_WIFIMANAGER_VERSION_MIN)
   {
-    Serial.print("Warning. Must use this example on Version later than : ");
-    Serial.println(ESP_ASYNC_WIFIMANAGER_VERSION_MIN_TARGET);
+    out("Warning. Must use this example on Version later than : ");
+    outln(ESP_ASYNC_WIFIMANAGER_VERSION_MIN_TARGET);
   }
 #endif
 
@@ -641,7 +672,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
   // Format FileFS if not yet
   if (!FileFS.begin(true))
   {
-    Serial.println(F("SPIFFS/LittleFS failed! Already tried formatting."));
+    outln(F("SPIFFS/LittleFS failed! Already tried formatting."));
   
     if (!FileFS.begin())
     {     
@@ -649,9 +680,9 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
       delay(100);
       
 #if USE_LITTLEFS
-      Serial.println(F("LittleFS failed!. Please use SPIFFS or EEPROM. Stay forever"));
+      outln(F("LittleFS failed!. Please use SPIFFS or EEPROM. Stay forever"));
 #else
-      Serial.println(F("SPIFFS failed!. Please use LittleFS or EEPROM. Stay forever"));
+      outln(F("SPIFFS failed!. Please use LittleFS or EEPROM. Stay forever"));
 #endif
 
       while (true)
@@ -672,12 +703,12 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     file = root.openNextFile();
   }
   
-  Serial.println();
+  outln();
 
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 
   if (!drd)
-    Serial.println(F("Can't instantiate. Disable DRD feature"));
+    outln(F("Can't instantiate. Disable DRD feature"));
     
   unsigned long startedAt = millis();
 
@@ -728,7 +759,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
   Router_Pass = ESPAsync_wifiManager.WiFi_Pass();
 
   //Remove this line if you do not want to see WiFi password printed
-  Serial.println("ESP Self-Stored: SSID = " + Router_SSID + ", Pass = " + Router_Pass);
+  outln("ESP Self-Stored: SSID = " + Router_SSID + ", Pass = " + Router_Pass);
 
   // SSID to uppercase
   ssid.toUpperCase();
@@ -743,7 +774,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     wifiMulti.addAP(Router_SSID.c_str(), Router_Pass.c_str());
     
     ESPAsync_wifiManager.setConfigPortalTimeout(120); //If no access point name has been previously entered disable timeout.
-    Serial.println(F("Got ESP Self-Stored Credentials. Timeout 120s for Config Portal"));
+    outln(F("Got ESP Self-Stored Credentials. Timeout 120s for Config Portal"));
   }
   
   if (loadConfigData())
@@ -751,7 +782,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     configDataLoaded = true;
     
     ESPAsync_wifiManager.setConfigPortalTimeout(120); //If no access point name has been previously entered disable timeout.
-    Serial.println(F("Got stored Credentials. Timeout 120s for Config Portal"));
+    outln(F("Got stored Credentials. Timeout 120s for Config Portal"));
 
 #if USE_ESP_WIFIMANAGER_NTP      
     if ( strlen(WM_config.TZ_Name) > 0 )
@@ -767,14 +798,14 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     }
     else
     {
-      Serial.println(F("Current Timezone is not set. Enter Config Portal to set."));
+      outln(F("Current Timezone is not set. Enter Config Portal to set."));
     } 
 #endif 
   }
   else
   {
     // Enter CP only if no stored SSID on flash and file 
-    Serial.println(F("Open Config Portal without Timeout: No stored Credentials."));
+    outln(F("Open Config Portal without Timeout: No stored Credentials."));
     initialConfig = true;
     
   }
@@ -784,13 +815,13 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     // DRD, disable timeout.
     ESPAsync_wifiManager.setConfigPortalTimeout(0);
     
-    Serial.println(F("Open Config Portal without Timeout: Double Reset Detected"));
+    outln(F("Open Config Portal without Timeout: Double Reset Detected"));
     initialConfig = true;
   }
 
   if (initialConfig)
   {
-    Serial.print(F("Starting configuration portal @ "));
+    out(F("Starting configuration portal @ "));
 
 
 
@@ -813,24 +844,24 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
 
 #if USE_CUSTOM_AP_IP    
-    Serial.print(APStaticIP);
+    out(APStaticIP);
 #else
-    Serial.print(F("192.168.4.1"));
+    out(F("192.168.4.1"));
 #endif
 
-    Serial.print(F(", SSID = "));
-    Serial.print(ssid);
+    out(F(", SSID = "));
+    out(ssid);
     
-    Serial.print(F(", PWD = "));
-    Serial.println(password);
+    out(F(", PWD = "));
+    outln(password);
     
 
     // Starts an access point
     if (!ESPAsync_wifiManager.startConfigPortal((const char *) ssid.c_str(), password.c_str()))
-      Serial.println(F("Not connected to WiFi but continuing anyway."));
+      outln(F("Not connected to WiFi but continuing anyway."));
     else
     {
-      Serial.println(F("WiFi connected...yeey :)"));
+      outln(F("WiFi connected...yeey :)"));
     }
 
     // Stored  for later usage, from v1.1.0, but clear first
@@ -918,11 +949,11 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
     if ( WiFi.status() != WL_CONNECTED ) 
     {
-      Serial.println(F("ConnectMultiWiFi in setup"));
+      outln(F("ConnectMultiWiFi in setup"));
      
     #ifdef LCD_DISPLAY
       lcdClearText();
-      lcdoutln(" STA MODE");
+      lcdoutln("STA MODE");
       tft.setTextSize(1); lcdoutln();
       tft.setTextSize(2); lcdoutln("   CONNECTING..."); 
       tft.setTextSize(1);
@@ -938,21 +969,21 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     }
   }
 
-  Serial.print(F("After waiting "));
-  Serial.print((float) (millis() - startedAt) / 1000);
-  Serial.print(F(" secs more in setup(), connection result is "));
+  out(F("After waiting "));
+  out((float) (millis() - startedAt) / 1000);
+  out(F(" secs more in setup(), connection result is "));
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.print(F("connected. Local IP: "));
-    Serial.println(WiFi.localIP());
+    out(F("connected. Local IP: "));
+    outln(WiFi.localIP());
   }
   else
-    Serial.println(ESPAsync_wifiManager.getStatus(WiFi.status()));
+    outln(ESPAsync_wifiManager.getStatus(WiFi.status()));
 
   if ( !MDNS.begin(host.c_str()) )
   {
-    Serial.println(F("Error starting MDNS responder!"));
+    outln(F("Error starting MDNS responder!"));
   }
   
   // Add service to MDNS-SD
@@ -977,31 +1008,31 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
   server.onNotFound([](AsyncWebServerRequest * request)
   {
-    Serial.print(F("NOT_FOUND: "));
+    out(F("NOT_FOUND: "));
     
     if (request->method() == HTTP_GET)
-      Serial.print(F("GET"));
+      out(F("GET"));
     else if (request->method() == HTTP_POST)
-      Serial.print(F("POST"));
+      out(F("POST"));
     else if (request->method() == HTTP_DELETE)
-      Serial.print(F("DELETE"));
+      out(F("DELETE"));
     else if (request->method() == HTTP_PUT)
-      Serial.print(F("PUT"));
+      out(F("PUT"));
     else if (request->method() == HTTP_PATCH)
-      Serial.print(F("PATCH"));
+      out(F("PATCH"));
     else if (request->method() == HTTP_HEAD)
-      Serial.print(F("HEAD"));
+      out(F("HEAD"));
     else if (request->method() == HTTP_OPTIONS)
-      Serial.print(F("OPTIONS"));
+      out(F("OPTIONS"));
     else
-      Serial.print(F("UNKNOWN"));
+      out(F("UNKNOWN"));
       
-    Serial.println(" http://" + request->host() + request->url());
+    outln(" http://" + request->host() + request->url());
 
     if (request->contentLength())
     {
-      Serial.println("_CONTENT_TYPE: " + request->contentType());
-      Serial.println("_CONTENT_LENGTH: " + request->contentLength());
+      outln("_CONTENT_TYPE: " + request->contentType());
+      outln("_CONTENT_LENGTH: " + request->contentLength());
     }
 
     int headers = request->headers();
@@ -1010,7 +1041,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     for (i = 0; i < headers; i++)
     {
       AsyncWebHeader* h = request->getHeader(i);
-      Serial.println("_HEADER[" + h->name() + "]: " + h->value());
+      outln("_HEADER[" + h->name() + "]: " + h->value());
     }
 
     int params = request->params();
@@ -1021,15 +1052,15 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
       if (p->isFile())
       {
-        Serial.println("_FILE[" + p->name() + "]: " + p->value() + ", size: " + p->size());
+        outln("_FILE[" + p->name() + "]: " + p->value() + ", size: " + p->size());
       }
       else if (p->isPost())
       {
-        Serial.println("_POST[" + p->name() + "]: " + p->value());
+        outln("_POST[" + p->name() + "]: " + p->value());
       }
       else
       {
-        Serial.println("_GET[" + p->name() + "]: " + p->value());
+        outln("_GET[" + p->name() + "]: " + p->value());
       }
     }
 
@@ -1041,12 +1072,12 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     (void) request;
     
     if (!index)
-      Serial.println("UploadStart: " + filename);
+      outln("UploadStart: " + filename);
 
-    Serial.print((const char*)data);
+    out((const char*)data);
 
     if (final)
-      Serial.println("UploadEnd: " + filename + "(" + String(index + len) + ")" );
+      outln("UploadEnd: " + filename + "(" + String(index + len) + ")" );
   });
 
   server.onRequestBody([](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total)
@@ -1054,31 +1085,35 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     (void) request;
     
     if (!index)
-      Serial.println("BodyStart: " + total);
+      outln("BodyStart: " + total);
 
-    Serial.print((const char*)data);
+    out((const char*)data);
 
     if (index + len == total)
-      Serial.println("BodyEnd: " + total);
+      outln("BodyEnd: " + total);
   });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "text/plain", "Hello World!");
   });
   AsyncElegantOTA.begin(&server);
+  // WebSerial is accessible at "<IP Address>/webserial" in browser
+    WebSerial.begin(&server);
+    /* Attach Message Callback */
+    WebSerial.msgCallback(recvMsg);
   server.begin();
   
 
   //////
 
-  Serial.print(F("HTTP server started @ "));
-  Serial.println(WiFi.localIP());
+  out(F("HTTP server started @ "));
+  outln(WiFi.localIP());
 
-  Serial.println(separatorLine);
-  Serial.print("Open http://"); Serial.print(WiFi.localIP());
-  Serial.println("/edit to see the file browser"); 
-  Serial.println("Using username = " + http_username + " and password = " + http_password);
-  Serial.println(separatorLine);
+  outln(separatorLine);
+  out("Open http://"); out(WiFi.localIP());
+  outln("/edit to see the file browser"); 
+  outln("Using username = " + http_username + " and password = " + http_password);
+  outln(separatorLine);
 
   
 
