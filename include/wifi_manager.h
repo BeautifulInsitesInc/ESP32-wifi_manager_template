@@ -5,7 +5,6 @@
 #include <AsyncElegantOTA.h>
 // WEB SERIAL
 
-
 #define ESP_ASYNC_WIFIMANAGER_VERSION_MIN_TARGET      "ESPAsync_WiFiManager v1.12.2"
 #define ESP_ASYNC_WIFIMANAGER_VERSION_MIN             1012002
 #define _ESPASYNC_WIFIMGR_LOGLEVEL_    3// Use from 0 to 4. Higher number, more debugging messages and memory usage.
@@ -237,6 +236,8 @@ String host = "async-esp32fs";
 
 AsyncWebServer server(HTTP_PORT);
 DNSServer dnsServer;
+WiFiServer TelnetServer(23); // setup Telenet port
+WiFiClient Telnet;
 
 AsyncEventSource events("/events");
 
@@ -271,28 +272,6 @@ typedef struct
 
 WiFi_AP_IPConfig  WM_AP_IPconfig;
 WiFi_STA_IPConfig WM_STA_IPconfig;
-
-
-
-// WEB SERIAL
-/* Message callback of WebSerial */
-void recvMsg(uint8_t *data, size_t len){
-  WebSerial.println("Received Data...");
-  String d = "";
-  for(int i=0; i < len; i++){
-    d += char(data[i]);
-  }
-  WebSerial.println(d);
-}
-
-// END WEB SERIAL
-
-
-
-
-
-
-
 
 
 
@@ -407,8 +386,7 @@ uint8_t connectMultiWiFi()
       tft.setTextSize(2); lcdout("   "); lcdoutln(WiFi.localIP());
       tft.setTextSize(1);
       lcdout(" /edit"); lcdout(" ("); lcdout(http_username); lcdout("/"); lcdout(http_password);lcdout(")");
-      lcdoutln("  /update");
-      lcdoutln("  /webserial");  
+      lcdoutln("  /update  ");  
       lcdout("  ");lcdout(Router_SSID); lcdout(" / "); lcdoutln(Router_Pass);
 
     #endif
@@ -494,7 +472,7 @@ void heartBeatPrint()
   static int num = 1;
 
   if (WiFi.status() == WL_CONNECTED)
-    out(F("H"));        // H means connected to WiFi
+    outln(F("H"));        // H means connected to WiFi
   else
     out(F("F"));        // F means not connected to WiFi
 
@@ -1008,31 +986,31 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
   server.onNotFound([](AsyncWebServerRequest * request)
   {
-    out(F("NOT_FOUND: "));
+    tout(F("NOT_FOUND: "));
     
     if (request->method() == HTTP_GET)
-      out(F("GET"));
+      toutln(F("GET"));
     else if (request->method() == HTTP_POST)
-      out(F("POST"));
+      toutln(F("POST"));
     else if (request->method() == HTTP_DELETE)
-      out(F("DELETE"));
+      toutln(F("DELETE"));
     else if (request->method() == HTTP_PUT)
-      out(F("PUT"));
+      toutln(F("PUT"));
     else if (request->method() == HTTP_PATCH)
-      out(F("PATCH"));
+      toutln(F("PATCH"));
     else if (request->method() == HTTP_HEAD)
-      out(F("HEAD"));
+      toutln(F("HEAD"));
     else if (request->method() == HTTP_OPTIONS)
-      out(F("OPTIONS"));
+      toutln(F("OPTIONS"));
     else
-      out(F("UNKNOWN"));
+      toutln(F("UNKNOWN"));
       
-    outln(" http://" + request->host() + request->url());
+    toutln(" http://" + request->host() + request->url());
 
     if (request->contentLength())
     {
-      outln("_CONTENT_TYPE: " + request->contentType());
-      outln("_CONTENT_LENGTH: " + request->contentLength());
+      toutln("_CONTENT_TYPE: " + request->contentType());
+      toutln("_CONTENT_LENGTH: " + request->contentLength());
     }
 
     int headers = request->headers();
@@ -1041,7 +1019,7 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
     for (i = 0; i < headers; i++)
     {
       AsyncWebHeader* h = request->getHeader(i);
-      outln("_HEADER[" + h->name() + "]: " + h->value());
+      toutln("_HEADER[" + h->name() + "]: " + h->value());
     }
 
     int params = request->params();
@@ -1052,15 +1030,15 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
       if (p->isFile())
       {
-        outln("_FILE[" + p->name() + "]: " + p->value() + ", size: " + p->size());
+        toutln("_FILE[" + p->name() + "]: " + p->value() + ", size: " + p->size());
       }
       else if (p->isPost())
       {
-        outln("_POST[" + p->name() + "]: " + p->value());
+        toutln("_POST[" + p->name() + "]: " + p->value());
       }
       else
       {
-        outln("_GET[" + p->name() + "]: " + p->value());
+        toutln("_GET[" + p->name() + "]: " + p->value());
       }
     }
 
@@ -1094,26 +1072,29 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
   });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "Hello World!");
+    request->send(SPIFFS, "/index.html", "text/html");
   });
+
+
+
+
+
   AsyncElegantOTA.begin(&server);
-  // WebSerial is accessible at "<IP Address>/webserial" in browser
-    WebSerial.begin(&server);
-    /* Attach Message Callback */
-    WebSerial.msgCallback(recvMsg);
   server.begin();
+  TelnetServer.begin();
+  TelnetServer.setNoDelay(true);
   
 
   //////
 
-  out(F("HTTP server started @ "));
+  outln(F("HTTP server started @ "));
   outln(WiFi.localIP());
 
   outln(separatorLine);
-  out("Open http://"); out(WiFi.localIP());
-  outln("/edit to see the file browser"); 
-  outln("Using username = " + http_username + " and password = " + http_password);
-  outln(separatorLine);
+  outln("Open http://"); outln(WiFi.localIP());
+  toutln("/edit to see the file browser"); 
+  toutln("Using username = " + http_username + " and password = " + http_password);
+  toutln(separatorLine);
 
   
 
@@ -1128,7 +1109,9 @@ pinMode(LED_BUILTIN, OUTPUT);  //set led pin as output
 
 }
 
+void telnetLoop(){// Handle Telnet - put on main loop
 
+}
 void wifiManagerLoop(){
 // Call the double reset detector loop method every so often,
   // so that it can recognise when the timeout expires.
@@ -1140,6 +1123,24 @@ void wifiManagerLoop(){
   check_status();
   AsyncElegantOTA.loop();
 
+  // Telnet LOOP
+    if (TelnetServer.hasClient()){ // client is connected
+  out("client is connected!");
+  toutln("Welcome!");
+  
+    if (!TelnetServer || !Telnet.connected()) {
+      if (Telnet) Telnet.stop(); // client disconnected
+      Telnet = TelnetServer.available(); //ready for new client
+      out("ready for new client");
+      toutln("Welcome!");
+
+    } else{
+      TelnetServer.available().stop(); // have client, block next
+      out("client connected");
+      toutln("Welcome!");
+    }
+
+  }
 
 }
 

@@ -1,6 +1,4 @@
 #include "main.h"
-#include "lcd_functions.h"
-#include "wifi_manager.h"
 
 
 
@@ -8,33 +6,45 @@
 void setup()
 {
   Serial.begin(115200);
-  out("Starting");
+  Serial.println("Starting");
+  Serial.print("Starting");
   
   #ifdef LCD_DISPLAY
     lcdInit();
   #endif
-
-  
   
   wifiManagerSetup(); // WiFi Manager, SPIFF uploader, OTA Updates
 
+  // Web Server Root URL
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+  });
+    
+  server.serveStatic("/", SPIFFS, "/");
+
+  AsyncElegantOTA.begin(&server);
+  server.begin();
+  TelnetServer.begin();
+  initWebSocket();
+
+  digitalWrite(LED_BUILTIN, LOW);
+
+
+  
+  
+  //telnetSetup();
   
 }
 
-unsigned long voltageStart = millis();
+
 void loop()
 {
   wifiManagerLoop();
   #ifdef LCD_DISPLAY
     lcdBrightness();
   #endif
+  telnetLoop();
+  batteryLevel();
 
-  /*
-  //Check battery pin
-  if (millis() >= voltageStart+10000){
-    voltageStart = millis();
-    int voltage = analogRead(35)*2;
-    out("Battery Level = "); out(voltage); out(" /1135: "); out(voltage/1135);
-  }
-  */
+  
 }

@@ -17,7 +17,7 @@ int time_screentime = 120; //time for screen backlight to turn off in seconds.
 unsigned long timer_start_screentime = 0; // to record mill at start of timer for screen shut off
 int brightness_level = 100;
 
-#define LCD_DISPLAY // Used to include LCD libraries - comment out to turn off
+#define LCD_DISPLAY // Used to include LCD libraries - comment Serial.print to turn off
 
 #ifdef LCD_DISPLAY
   #define lcdout(x) tft.print(x)
@@ -52,7 +52,7 @@ void spiffListFiles(){//list contents of SPIFF
     File root = SPIFFS.open("/");
     File listing = root.openNextFile();
     while(listing){
-        out("FILE: ");
+        outln("FILE: ");
         outln(listing.name());
         listing = root.openNextFile();
     }
@@ -90,10 +90,10 @@ void lcdSplashScreen(){
     uint32_t t = millis();  // Time recorded for test purposes
     uint16_t w = 0, h = 0;// Get the width and height in pixels of the jpeg if you wish
     TJpgDec.getFsJpgSize(&w, &h, "/si_ttgo240x135.jpg"); // Note name preceded with "/"
-    out("Width = "); out(w); out(", height = "); outln(h);
+    outln("Width = "); outln(w); outln(", height = "); outln(h);
     TJpgDec.drawFsJpg(0, 0, "/si_ttgo240x135.jpg");  // Draw the image, top left at 0,0
     t = millis() - t;  // How much time did rendering take (ESP8266 80MHz 271ms, 160MHz 157ms, ESP32 SPI 120ms, 8bit parallel 105ms
-    out(t); outln(" ms");
+    outln(t); outln(" ms");
     delay(5000);// Wait before drawing again
   */
 }
@@ -171,7 +171,7 @@ void lcdBrightness(){
     }
 
     if (digitalRead(LCD_BUTTON) == 0){
-      out("Screen Button pressed onced Screen brightness is "); outln(brightness_level);
+      outln("Screen Button pressed onced Screen brightness is "); outln(brightness_level);
       delay(100);
       if (digitalRead(LCD_BUTTON) == 0){
         outln("Screen Button held");
@@ -183,7 +183,7 @@ void lcdBrightness(){
 
     }
 lcdSetBrightness(brightness_level);
-//out("Screen bright ness  set to : "); outln(brightness_level);
+//outln("Screen bright ness  set to : "); outln(brightness_level);
     
 }
 
